@@ -93,3 +93,33 @@ test('Should not delete user profile if not authenticated', async () => {
         .send()
         .expect(401)
 })
+
+test('Should upload avatar image', async () => {
+    await request(app).post('/users/me/avatar')
+        .set('Authorization', `Bearer ${user.tokens[0].token}`)
+        .attach('avatar', 'tests/fixtures/test.png')
+        .expect(200)
+    const testUser = await User.findById(userId)
+    expect(testUser.avatar).toEqual(expect.any(Buffer))
+})
+
+test('should update valid user data', async () => {
+    await request(app).patch('/users/me')
+        .set('Authorization', `Bearer ${user.tokens[0].token}`)
+        .send({
+            name: "test123"
+        })
+        .expect(200)
+
+    const testUser = await User.findById(userId)
+    expect(testUser.name).toEqual('test123')
+})
+
+test('should not update invalid user data', async () => {
+    await request(app).patch('/users/me')
+        .set('Authorization', `Bearer ${user.tokens[0].token}`)
+        .send({
+            location: "test123"
+        })
+        .expect(400)
+})
