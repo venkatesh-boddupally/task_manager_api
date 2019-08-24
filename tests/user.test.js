@@ -1,27 +1,21 @@
 const request = require('supertest')
 const app = require('../src/app')
-const jwt = require('jsonwebtoken')
-const mongoose = require('mongoose')
 const User = require('../src/models/user')
-
+const {
+    userId,
+    user, 
+    userTwoId,
+    userTwo,
+    taskOne, 
+    taskTwo,
+    taskThree,
+    setupDatabase
+} = require('./fixtures/db')
 const testEmail = "test@gmail.com"
 const testPassword = "test123"
 
-const userId = mongoose.Types.ObjectId()
-const user = {
-    _id: userId,
-    name: "test",
-    email: testEmail,
-    password: testPassword,
-    tokens: [{
-        token: jwt.sign({_id: userId}, process.env.JWT_SECRET)
-    }]
-}
 
-beforeEach(async () => {
-    await User.deleteMany()
-    await new User(user).save()
-})
+beforeEach(setupDatabase)
 
 test('should test a user signup', async () => {
     const response = await request(app).post('/users').send({
@@ -30,28 +24,25 @@ test('should test a user signup', async () => {
         password: "signup123"
     }).expect(201)
 
-    const user = await User.findById(response.body.user._id)
-    expect(user).not.toBeNull()
+    const testUser = await User.findById(response.body.user._id)
+    expect(testUser).not.toBeNull()
 
     expect(response.body).toMatchObject({
         user: {
             name: "signup",
             email: "signup@gmail.com"
         },
-        token: user.tokens[0].token
+        token: testUser.tokens[0].token
     })
 
-    expect(user.password).not.toBe('signup123')
+    expect(testUser.password).not.toBe('signup123')
 })
 
 test('should test a user login', async () => {
-    const response = await request(app).post('/users/login').send({
+    await request(app).post('/users/login').send({
         email: testEmail,
         password: testPassword
     }).expect(200)
-
-    const user = await User.findById(userId)
-    expect(response.body.token).toBe(user.tokens[0].token)
 })
 
 test('should test a user invalid credentials login', async () => {
